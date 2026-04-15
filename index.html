@@ -11,7 +11,15 @@
     max-width: 780px; margin-left: auto; margin-right: auto;
   }
   h1 { font-size: 22px; font-weight: 600; margin: 0 0 4px; letter-spacing: 1px; }
-  .hint { color: #999; font-size: 12px; margin-bottom: 30px; }
+  .hint { color: #999; font-size: 12px; margin-bottom: 20px; }
+
+  .userbar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 14px; background: #f8f8f8; border-radius: 4px; margin-bottom: 24px;
+    font-size: 13px;
+  }
+  .userbar .who { color: #555; }
+  .userbar .who b { color: #222; }
 
   .form { border: 1px solid #e5e5e5; padding: 20px 24px; border-radius: 4px; margin-bottom: 30px; }
   .row { display: flex; margin-bottom: 14px; align-items: flex-start; }
@@ -34,6 +42,13 @@
   button:hover { background: #333; color: #fff; }
   button.del { border-color: #ccc; color: #888; padding: 3px 10px; font-size: 11px; }
   button.del:hover { background: #c0392b; border-color: #c0392b; color: #fff; }
+  button.ghost { border-color: #ccc; color: #666; padding: 6px 14px; font-size: 12px; }
+
+  .login-box { text-align: center; padding: 60px 20px; border: 1px solid #eee; border-radius: 6px; }
+  .login-box p { color: #666; margin-bottom: 20px; }
+  .google-btn {
+    padding: 10px 22px; font-size: 14px; border: 1px solid #333;
+  }
 
   .list h2 { font-size: 15px; font-weight: 600; color: #555; margin: 0 0 14px; }
   .entry {
@@ -47,124 +62,195 @@
   .entry .reason { margin-top: 10px; font-size: 13px; color: #444; white-space: pre-wrap; }
   .entry .del-wrap { position: absolute; top: 14px; right: 14px; }
   .empty { color: #bbb; font-size: 13px; text-align: center; padding: 30px; }
+
+  #app { display: none; }
+  #loading { text-align: center; padding: 60px; color: #999; }
 </style>
 </head>
 <body>
   <h1>매매일지</h1>
-  <div class="hint">입력한 내용은 이 브라우저에 저장됩니다.</div>
+  <div class="hint">구글 로그인 후 본인 기록만 안전하게 저장됩니다.</div>
 
-  <div class="form">
-    <div class="row">
-      <label>날짜</label>
-      <div class="inputs"><input type="date" id="date"></div>
+  <div id="loading">로딩 중...</div>
+
+  <div id="loginBox" class="login-box" style="display:none;">
+    <p>구글 계정으로 로그인하여 시작하세요.</p>
+    <button class="google-btn" onclick="signIn()">Google로 로그인</button>
+  </div>
+
+  <div id="app">
+    <div class="userbar">
+      <div class="who"><b id="userName"></b> (<span id="userEmail"></span>)</div>
+      <button class="ghost" onclick="signOut()">로그아웃</button>
     </div>
-    <div class="row">
-      <label>종목</label>
-      <div class="inputs"><input type="text" id="ticker" placeholder="종목명"></div>
-    </div>
-    <div class="row">
-      <label>매수가</label>
-      <div class="inputs"><input type="text" id="buyPrice" placeholder="원"></div>
-    </div>
-    <div class="row">
-      <label>매도예정가</label>
-      <div class="inputs half">
-        <input type="text" id="sell1" placeholder="1차">
-        <input type="text" id="sell2" placeholder="최종">
+
+    <div class="form">
+      <div class="row">
+        <label>날짜</label>
+        <div class="inputs"><input type="date" id="date"></div>
+      </div>
+      <div class="row">
+        <label>종목</label>
+        <div class="inputs"><input type="text" id="ticker" placeholder="종목명"></div>
+      </div>
+      <div class="row">
+        <label>매수가</label>
+        <div class="inputs"><input type="text" id="buyPrice" placeholder="원"></div>
+      </div>
+      <div class="row">
+        <label>매도예정가</label>
+        <div class="inputs half">
+          <input type="text" id="sell1" placeholder="1차">
+          <input type="text" id="sell2" placeholder="최종">
+        </div>
+      </div>
+      <div class="row">
+        <label>손절가</label>
+        <div class="inputs"><input type="text" id="stop" placeholder="원"></div>
+      </div>
+      <div class="row">
+        <label>매수이유</label>
+        <div class="inputs"><textarea id="reason" placeholder="왜 샀는지..."></textarea></div>
+      </div>
+      <div class="row">
+        <label>매매기간</label>
+        <div class="inputs"><input type="text" id="period" placeholder="예: ~2026-06-30 / 실적발표까지"></div>
+      </div>
+      <div class="row">
+        <label>비중</label>
+        <div class="inputs"><input type="text" id="weight" placeholder="총 투자금의 % (예: 15)"></div>
+      </div>
+
+      <div class="btns">
+        <button onclick="save()">저장</button>
+        <button onclick="resetForm()">초기화</button>
       </div>
     </div>
-    <div class="row">
-      <label>손절가</label>
-      <div class="inputs"><input type="text" id="stop" placeholder="원"></div>
-    </div>
-    <div class="row">
-      <label>매수이유</label>
-      <div class="inputs"><textarea id="reason" placeholder="왜 샀는지..."></textarea></div>
-    </div>
-    <div class="row">
-      <label>매매기간</label>
-      <div class="inputs"><input type="text" id="period" placeholder="예: ~2026-06-30 / 실적발표까지"></div>
-    </div>
-    <div class="row">
-      <label>비중</label>
-      <div class="inputs"><input type="text" id="weight" placeholder="총 투자금의 % (예: 15)"></div>
-    </div>
 
-    <div class="btns">
-      <button onclick="save()">저장</button>
-      <button onclick="reset()">초기화</button>
+    <div class="list">
+      <h2>기록</h2>
+      <div id="entries"></div>
     </div>
   </div>
 
-  <div class="list">
-    <h2>기록</h2>
-    <div id="entries"></div>
-  </div>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getAuth, GoogleAuthProvider, signInWithPopup, signOut as fbSignOut, onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import {
+    getFirestore, collection, addDoc, deleteDoc, doc, query, orderBy, onSnapshot, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-<script>
-const KEY = 'trading_journal_simple_v1';
-let data = JSON.parse(localStorage.getItem(KEY) || '[]');
+  const firebaseConfig = {
+    apiKey: "AIzaSyCk6ghhK1LuNKXQnOBvynF6OUbjXQXrMDc",
+    authDomain: "memo-79459.firebaseapp.com",
+    projectId: "memo-79459",
+    storageBucket: "memo-79459.firebasestorage.app",
+    messagingSenderId: "266485031383",
+    appId: "1:266485031383:web:dfb0f34df44a444cdc6b92",
+    measurementId: "G-NBMNQ9166Y"
+  };
 
-document.getElementById('date').valueAsDate = new Date();
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const provider = new GoogleAuthProvider();
 
-function save() {
-  const t = document.getElementById('ticker').value.trim();
-  if (!t) { alert('종목을 입력하세요'); return; }
-  data.push({
-    id: Date.now(),
-    date: document.getElementById('date').value,
-    ticker: t,
-    buyPrice: document.getElementById('buyPrice').value,
-    sell1: document.getElementById('sell1').value,
-    sell2: document.getElementById('sell2').value,
-    stop: document.getElementById('stop').value,
-    reason: document.getElementById('reason').value,
-    period: document.getElementById('period').value,
-    weight: document.getElementById('weight').value,
+  let currentUser = null;
+  let unsubscribe = null;
+
+  window.signIn = () => signInWithPopup(auth, provider).catch(e => alert('로그인 실패: ' + e.message));
+  window.signOut = () => fbSignOut(auth);
+
+  onAuthStateChanged(auth, user => {
+    document.getElementById('loading').style.display = 'none';
+    if (user) {
+      currentUser = user;
+      document.getElementById('loginBox').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      document.getElementById('userName').textContent = user.displayName || '사용자';
+      document.getElementById('userEmail').textContent = user.email;
+      document.getElementById('date').valueAsDate = new Date();
+      subscribeEntries();
+    } else {
+      currentUser = null;
+      if (unsubscribe) unsubscribe();
+      document.getElementById('loginBox').style.display = 'block';
+      document.getElementById('app').style.display = 'none';
+    }
   });
-  persist();
-  reset();
-  render();
-}
 
-function reset() {
-  ['ticker','buyPrice','sell1','sell2','stop','reason','period','weight'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('date').valueAsDate = new Date();
-}
+  function userCol() {
+    return collection(db, 'users', currentUser.uid, 'trades');
+  }
 
-function del(id) {
-  if (!confirm('삭제할까요?')) return;
-  data = data.filter(d => d.id !== id);
-  persist();
-  render();
-}
+  function subscribeEntries() {
+    const q = query(userCol(), orderBy('createdAt', 'desc'));
+    unsubscribe = onSnapshot(q, snap => {
+      const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      render(items);
+    }, err => {
+      console.error(err);
+      document.getElementById('entries').innerHTML = '<div class="empty">데이터 로드 실패: ' + err.message + '</div>';
+    });
+  }
 
-function persist() { localStorage.setItem(KEY, JSON.stringify(data)); }
+  window.save = async () => {
+    const t = document.getElementById('ticker').value.trim();
+    if (!t) { alert('종목을 입력하세요'); return; }
+    try {
+      await addDoc(userCol(), {
+        date: document.getElementById('date').value,
+        ticker: t,
+        buyPrice: document.getElementById('buyPrice').value,
+        sell1: document.getElementById('sell1').value,
+        sell2: document.getElementById('sell2').value,
+        stop: document.getElementById('stop').value,
+        reason: document.getElementById('reason').value,
+        period: document.getElementById('period').value,
+        weight: document.getElementById('weight').value,
+        createdAt: serverTimestamp()
+      });
+      resetForm();
+    } catch (e) {
+      alert('저장 실패: ' + e.message);
+    }
+  };
 
-function esc(s) { return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  window.resetForm = () => {
+    ['ticker','buyPrice','sell1','sell2','stop','reason','period','weight'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('date').valueAsDate = new Date();
+  };
 
-function render() {
-  const box = document.getElementById('entries');
-  if (!data.length) { box.innerHTML = '<div class="empty">아직 기록이 없습니다.</div>'; return; }
-  box.innerHTML = [...data].reverse().map(d => `
-    <div class="entry">
-      <div class="del-wrap"><button class="del" onclick="del(${d.id})">삭제</button></div>
-      <div class="date">${esc(d.date)}</div>
-      <div class="name">${esc(d.ticker)}</div>
-      <div class="grid">
-        <div><span>매수가</span>${esc(d.buyPrice)}</div>
-        <div><span>손절가</span>${esc(d.stop)}</div>
-        <div><span>매도 1차</span>${esc(d.sell1)}</div>
-        <div><span>매도 최종</span>${esc(d.sell2)}</div>
-        <div><span>기간</span>${esc(d.period)}</div>
-        <div><span>비중</span>${esc(d.weight)}${d.weight && !d.weight.includes('%') ? '%' : ''}</div>
+  window.del = async (id) => {
+    if (!confirm('삭제할까요?')) return;
+    try { await deleteDoc(doc(userCol(), id)); }
+    catch (e) { alert('삭제 실패: ' + e.message); }
+  };
+
+  function esc(s) { return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  function render(data) {
+    const box = document.getElementById('entries');
+    if (!data.length) { box.innerHTML = '<div class="empty">아직 기록이 없습니다.</div>'; return; }
+    box.innerHTML = data.map(d => `
+      <div class="entry">
+        <div class="del-wrap"><button class="del" onclick="del('${d.id}')">삭제</button></div>
+        <div class="date">${esc(d.date)}</div>
+        <div class="name">${esc(d.ticker)}</div>
+        <div class="grid">
+          <div><span>매수가</span>${esc(d.buyPrice)}</div>
+          <div><span>손절가</span>${esc(d.stop)}</div>
+          <div><span>매도 1차</span>${esc(d.sell1)}</div>
+          <div><span>매도 최종</span>${esc(d.sell2)}</div>
+          <div><span>기간</span>${esc(d.period)}</div>
+          <div><span>비중</span>${esc(d.weight)}${d.weight && !String(d.weight).includes('%') ? '%' : ''}</div>
+        </div>
+        ${d.reason ? `<div class="reason"><span style="color:#888;">이유</span>  ${esc(d.reason)}</div>` : ''}
       </div>
-      ${d.reason ? `<div class="reason"><span style="color:#888;">이유</span>  ${esc(d.reason)}</div>` : ''}
-    </div>
-  `).join('');
-}
-
-render();
+    `).join('');
+  }
 </script>
 </body>
 </html>
