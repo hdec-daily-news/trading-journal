@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>매매일지</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+    background: #fff; color: #222; margin: 0; padding: 40px 20px;
+    max-width: 780px; margin-left: auto; margin-right: auto;
+  }
+  h1 { font-size: 22px; font-weight: 600; margin: 0 0 4px; letter-spacing: 1px; }
+  .hint { color: #999; font-size: 12px; margin-bottom: 30px; }
+
+  .form { border: 1px solid #e5e5e5; padding: 20px 24px; border-radius: 4px; margin-bottom: 30px; }
+  .row { display: flex; margin-bottom: 14px; align-items: flex-start; }
+  .row label { width: 130px; font-size: 14px; color: #444; padding-top: 7px; flex-shrink: 0; }
+  .row .inputs { flex: 1; display: flex; gap: 8px; }
+  .row input, .row textarea {
+    width: 100%; border: none; border-bottom: 1px solid #ddd; padding: 6px 2px;
+    font-size: 14px; font-family: inherit; background: transparent;
+  }
+  .row input:focus, .row textarea:focus { outline: none; border-bottom-color: #333; }
+  .row textarea { resize: vertical; min-height: 36px; border: 1px solid #eee; border-radius: 3px; padding: 8px; }
+  .half { display: flex; gap: 8px; }
+
+  .btns { display: flex; gap: 8px; margin-top: 20px; }
+  button {
+    border: 1px solid #333; background: #fff; color: #333;
+    padding: 8px 18px; font-size: 13px; cursor: pointer; border-radius: 3px;
+    font-family: inherit;
+  }
+  button:hover { background: #333; color: #fff; }
+  button.del { border-color: #ccc; color: #888; padding: 3px 10px; font-size: 11px; }
+  button.del:hover { background: #c0392b; border-color: #c0392b; color: #fff; }
+
+  .list h2 { font-size: 15px; font-weight: 600; color: #555; margin: 0 0 14px; }
+  .entry {
+    border: 1px solid #eee; padding: 16px 20px; margin-bottom: 12px; border-radius: 4px;
+    position: relative;
+  }
+  .entry .date { font-size: 12px; color: #888; margin-bottom: 6px; }
+  .entry .name { font-size: 16px; font-weight: 600; margin-bottom: 10px; }
+  .entry .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 20px; font-size: 13px; color: #333; }
+  .entry .grid span { color: #888; margin-right: 6px; }
+  .entry .reason { margin-top: 10px; font-size: 13px; color: #444; white-space: pre-wrap; }
+  .entry .del-wrap { position: absolute; top: 14px; right: 14px; }
+  .empty { color: #bbb; font-size: 13px; text-align: center; padding: 30px; }
+</style>
+</head>
+<body>
+  <h1>매매일지</h1>
+  <div class="hint">입력한 내용은 이 브라우저에 저장됩니다.</div>
+
+  <div class="form">
+    <div class="row">
+      <label>날짜</label>
+      <div class="inputs"><input type="date" id="date"></div>
+    </div>
+    <div class="row">
+      <label>종목</label>
+      <div class="inputs"><input type="text" id="ticker" placeholder="종목명"></div>
+    </div>
+    <div class="row">
+      <label>매수가</label>
+      <div class="inputs"><input type="text" id="buyPrice" placeholder="원"></div>
+    </div>
+    <div class="row">
+      <label>매도예정가</label>
+      <div class="inputs half">
+        <input type="text" id="sell1" placeholder="1차">
+        <input type="text" id="sell2" placeholder="최종">
+      </div>
+    </div>
+    <div class="row">
+      <label>손절가</label>
+      <div class="inputs"><input type="text" id="stop" placeholder="원"></div>
+    </div>
+    <div class="row">
+      <label>매수이유</label>
+      <div class="inputs"><textarea id="reason" placeholder="왜 샀는지..."></textarea></div>
+    </div>
+    <div class="row">
+      <label>매매기간</label>
+      <div class="inputs"><input type="text" id="period" placeholder="예: ~2026-06-30 / 실적발표까지"></div>
+    </div>
+    <div class="row">
+      <label>비중</label>
+      <div class="inputs"><input type="text" id="weight" placeholder="총 투자금의 % (예: 15)"></div>
+    </div>
+
+    <div class="btns">
+      <button onclick="save()">저장</button>
+      <button onclick="reset()">초기화</button>
+    </div>
+  </div>
+
+  <div class="list">
+    <h2>기록</h2>
+    <div id="entries"></div>
+  </div>
+
+<script>
+const KEY = 'trading_journal_simple_v1';
+let data = JSON.parse(localStorage.getItem(KEY) || '[]');
+
+document.getElementById('date').valueAsDate = new Date();
+
+function save() {
+  const t = document.getElementById('ticker').value.trim();
+  if (!t) { alert('종목을 입력하세요'); return; }
+  data.push({
+    id: Date.now(),
+    date: document.getElementById('date').value,
+    ticker: t,
+    buyPrice: document.getElementById('buyPrice').value,
+    sell1: document.getElementById('sell1').value,
+    sell2: document.getElementById('sell2').value,
+    stop: document.getElementById('stop').value,
+    reason: document.getElementById('reason').value,
+    period: document.getElementById('period').value,
+    weight: document.getElementById('weight').value,
+  });
+  persist();
+  reset();
+  render();
+}
+
+function reset() {
+  ['ticker','buyPrice','sell1','sell2','stop','reason','period','weight'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('date').valueAsDate = new Date();
+}
+
+function del(id) {
+  if (!confirm('삭제할까요?')) return;
+  data = data.filter(d => d.id !== id);
+  persist();
+  render();
+}
+
+function persist() { localStorage.setItem(KEY, JSON.stringify(data)); }
+
+function esc(s) { return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function render() {
+  const box = document.getElementById('entries');
+  if (!data.length) { box.innerHTML = '<div class="empty">아직 기록이 없습니다.</div>'; return; }
+  box.innerHTML = [...data].reverse().map(d => `
+    <div class="entry">
+      <div class="del-wrap"><button class="del" onclick="del(${d.id})">삭제</button></div>
+      <div class="date">${esc(d.date)}</div>
+      <div class="name">${esc(d.ticker)}</div>
+      <div class="grid">
+        <div><span>매수가</span>${esc(d.buyPrice)}</div>
+        <div><span>손절가</span>${esc(d.stop)}</div>
+        <div><span>매도 1차</span>${esc(d.sell1)}</div>
+        <div><span>매도 최종</span>${esc(d.sell2)}</div>
+        <div><span>기간</span>${esc(d.period)}</div>
+        <div><span>비중</span>${esc(d.weight)}${d.weight && !d.weight.includes('%') ? '%' : ''}</div>
+      </div>
+      ${d.reason ? `<div class="reason"><span style="color:#888;">이유</span>  ${esc(d.reason)}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+render();
+</script>
+</body>
+</html>
